@@ -2,7 +2,7 @@
 // @id              dynamic-island-for-windows
 // @name            Dynamic Island for Windows
 // @description     A living, breathing pill overlay inspired by iPhone's Dynamic Island. Reacts to media, downloads, clipboard, battery, and more.
-// @version         1.4.0
+// @version         1.4.1
 // @author          Himanshu
 // @github          https://github.com/devcode90
 // @include         windhawk.exe
@@ -34,6 +34,7 @@ The Dynamic Island intelligently expands to display context-aware dashboards. Yo
 | **Calendar** | A monthly grid that always fits its rows, with today marked in the accent colour. | ![Calendar](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/calendar.png) |
 | **Weather** | Real-time weather stats powered by wttr.in, including wind speed, humidity, and "feels like" temperature. | ![Weather](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/weather-v2.png) |
 | **Hardware Monitor** | CPU, RAM, GPU, disk and live network throughput, with load bars that turn amber past 75% and red past 90%. | ![Hardware Monitor](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/hardware-monitor.png) |
+| **Codex & Home Assistant** | Remaining Codex five-hour and weekly allowance plus up to three Home Assistant entity states. | |
 | **Game Overlay** | Real-time FPS, CPU, GPU, RAM and disk, sized to whichever metrics you enable. | ![Gamebar](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/gamebar-v2.png) |
 | **Idle View** | A minimal dashboard with your battery status, digital clock, and sleek pagination dots. | ![Idle](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/idle-v2.png) |
 | **Camera Privacy** | Shows a green dot when an app is actively using your webcam. | ![Camera](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/camera-detected-v2.png) |
@@ -69,6 +70,7 @@ The Dynamic Island intelligently expands to display context-aware dashboards. Yo
 - **Right-Click Menu:** Right-click the island to access Theme presets, Transparency settings, collapsed-island lyrics, and to pin the island open.
 - **⚠️ Right-click choices are per-session:** The right-click menu is a quick way to try things out, not a place to configure the mod. **Theme**, **shape style** (Pill / Notch / Windows 11) and **pin open** are all re-applied from your Windhawk settings whenever the mod restarts — so a reboot, a mod update, or toggling the mod off and on will discard them. Anything you want to keep, set in the **Mod Settings** tab instead. (Transparency and Expand-on-hover do persist, but the settings tab is still the reliable place for them.)
 - **Windhawk Settings:** Visit the Mod Settings tab to change the island's Position, Size Scale, Refresh Rate (Target FPS), Animation Style (Smooth/Default/Bouncy/Snappy), Animation Speed, and toggle specific modules. You can also perfectly align the island using the `Offset X` and `Offset Y` settings, and select exactly which monitor the island should appear on (including a "Follow Mouse" mode!).
+- **Codex & Home Assistant:** Under Modules, set the path to `codex.exe` if it isn't in Windhawk's PATH. For Home Assistant, add the base URL, a long-lived access token, and up to three comma-separated entity IDs. The token is sent only to that configured URL.
 - **Blur & Acrylic need Transparency effects:** Windows does not enable this by default on every PC, and the Blur and Acrylic backdrop will not show without it (you will only see a flat tint instead). Turn it on in **Settings > Personalization > Colors > Transparency effects** (on Windows 11 you can also find it under **Settings > Accessibility > Visual effects > Transparency effects**). Also make sure **Battery saver** is off, because it disables these effects too. Then pick a material under **Mod Settings > Themes > Backdrop material**; the change applies live, no restart needed.
 - **Notifications:** Windows must allow apps to read notifications: turn on **Settings > Privacy & security > Notifications > "Let apps access your notifications"**. Without that permission Windows denies the listener and the module stays silent. Nothing needs to be added to the process inclusion list; the island runs in its own process and reads notifications from there. Note: notifications from command-line consoles and terminal hosts (PowerShell, cmd.exe, conhost) are filtered out by default to avoid toast spam from terminal scripts and build jobs.
 - **Quick Hide/Show:** Right-click the island and choose "Hide Island" to collapse it completely — CPU usage drops to ~0% while hidden since the mod fully parks its render thread. Bring it back instantly with the configurable hotkey (default **Ctrl+Alt+D**, changeable in the **Shortcuts** settings tab). Because a hidden island can't be right-clicked, the hotkey is the *only* way back once hidden — if you turn the hotkey off while hidden, re-enable it (or disable the mod) from Windhawk's settings.
@@ -418,6 +420,27 @@ We love community contributions! To ensure high-quality updates, please follow t
   - HardwareMonitorModule: true
     $name: Include Hardware Monitor in scroll loop
     $description: Add CPU, GPU, RAM, FPS and Network stats card to mouse-wheel scroll loop.
+  - IntegrationsModule: true
+    $name: Codex & Home Assistant dashboard
+    $description: Adds a dashboard with remaining Codex allowance and up to three Home Assistant entities.
+  - CodexUsage: true
+    $name: Show Codex allowance
+    $description: Reads the signed-in account's remaining five-hour and weekly allowance from the local Codex app-server. No authentication token is copied or stored by this mod.
+  - CodexCommand: "codex.exe"
+    $name: Codex executable
+    $description: Command or full path to codex.exe. Use a full path if Codex is not available in the Windhawk process PATH.
+  - HomeAssistantUrl: "http://homeassistant.local:8123"
+    $name: Home Assistant URL
+    $description: Base URL of your Home Assistant instance, including the port when needed.
+  - HomeAssistantToken: ""
+    $name: Home Assistant long-lived access token
+    $description: Optional. Create a long-lived access token in your Home Assistant profile. It is sent only to the configured Home Assistant URL.
+  - HomeAssistantEntities: ""
+    $name: Home Assistant entities
+    $description: Up to three comma-separated entity IDs, for example sensor.living_room_temperature, light.office, binary_sensor.front_door.
+  - IntegrationsRefreshSeconds: 60
+    $name: Integrations refresh interval
+    $description: Refresh Codex and Home Assistant data every 15 to 3600 seconds.
   - GameOverlay: false
     $name: Enable game overlay mode
     $description: Replaces the clock with live stats like FPS, CPU, and RAM usage.
@@ -624,6 +647,7 @@ We love community contributions! To ensure high-quality updates, please follow t
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cwchar>
 #include <cstring>
 #include <memory>
@@ -1272,6 +1296,13 @@ struct Settings {
     D2D1_COLOR_F micDotColor = D2D1::ColorF(1.0f, 0.584f, 0.0f, 1.0f); // #FF9500
     D2D1_COLOR_F camDotColor = D2D1::ColorF(0.204f, 0.780f, 0.349f, 1.0f); // #34C759
     bool hardwareMonitorModule = true;
+    bool integrationsModule = true;
+    bool codexUsage = true;
+    std::wstring codexCommand = L"codex.exe";
+    std::wstring homeAssistantUrl = L"http://homeassistant.local:8123";
+    std::wstring homeAssistantToken;
+    std::vector<std::wstring> homeAssistantEntities;
+    int integrationsRefreshSeconds = 60;
     bool doNotDisturbIndicator = true;
     bool notificationRespectDnD = true;
 
@@ -1501,6 +1532,24 @@ struct WeatherSnapshot {
     double lastUpdated = 0.0;
 };
 
+struct HomeAssistantEntitySnapshot {
+    std::wstring entityId;
+    std::wstring name;
+    std::wstring state;
+    std::wstring unit;
+    bool available = false;
+};
+
+struct IntegrationsSnapshot {
+    bool codexAvailable = false;
+    int codexFiveHourRemaining = -1;
+    int codexWeeklyRemaining = -1;
+    int64_t codexFiveHourResetsAt = 0;
+    int64_t codexWeeklyResetsAt = 0;
+    std::array<HomeAssistantEntitySnapshot, 3> homeAssistant{};
+    double lastUpdated = 0.0;
+};
+
 struct DoNotDisturbSnapshot {
     bool active = false;
     bool enabled = false;
@@ -1651,6 +1700,7 @@ struct SharedState {
     ProgressSnapshot progress;
     SystemSnapshot system;
     WeatherSnapshot weather;
+    IntegrationsSnapshot integrations;
     LyricsSnapshot lyrics;
     LookupSnapshot lookup;
     std::vector<LookupRecent> lookupRecent;  // newest first, guarded by g_stateMutex
@@ -1723,6 +1773,7 @@ HANDLE g_renderThread = nullptr;
 HANDLE g_mediaThread = nullptr;
 HANDLE g_audioThread = nullptr;
 HANDLE g_weatherThread = nullptr;
+HANDLE g_integrationsThread = nullptr;
 HANDLE g_lyricsThread = nullptr;
 HANDLE g_notificationThread = nullptr;
 HANDLE g_bluetoothThread = nullptr;
@@ -1966,6 +2017,7 @@ int ActiveTabCount(const Settings& settings) {
     int count = 2;  // primary (media or clock) + calendar
     if (settings.weather) ++count;
     if (settings.hardwareMonitorModule) ++count;
+    if (settings.integrationsModule) ++count;
     if (settings.fileTrayModule) ++count;
     if (settings.lyrics && g_lyricsTabAvailable.load(std::memory_order_relaxed)) ++count;
     return count;
@@ -1999,6 +2051,15 @@ int HardwareMonitorTabIndex(const Settings& settings) {
 
 int FileTrayTabIndex(const Settings& settings) {
     if (!settings.fileTrayModule) {
+        return -1;
+    }
+    return 2 + (settings.weather ? 1 : 0) + (settings.hardwareMonitorModule ? 1 : 0) +
+           (settings.integrationsModule ? 1 : 0) +
+           MediaTabIndex(settings);
+}
+
+int IntegrationsTabIndex(const Settings& settings) {
+    if (!settings.integrationsModule) {
         return -1;
     }
     return 2 + (settings.weather ? 1 : 0) + (settings.hardwareMonitorModule ? 1 : 0) +
@@ -3262,6 +3323,39 @@ void LoadSettings() {
                              0.35f, 1.0f);
     next.gameOverlay = Wh_GetIntSetting(L"Modules.GameOverlay") != 0;
     next.showMetricText = Wh_GetIntSetting(L"Modules.ShowMetricText") != 0;
+    next.integrationsModule = Wh_GetIntSetting(L"Modules.IntegrationsModule") != 0;
+    next.codexUsage = Wh_GetIntSetting(L"Modules.CodexUsage") != 0;
+    next.codexCommand = GetStringSettingCopy(L"Modules.CodexCommand");
+    if (next.codexCommand.empty()) {
+        next.codexCommand = L"codex.exe";
+    }
+    next.homeAssistantUrl = GetStringSettingCopy(L"Modules.HomeAssistantUrl");
+    if (next.homeAssistantUrl.empty()) {
+        next.homeAssistantUrl = L"http://homeassistant.local:8123";
+    }
+    next.homeAssistantToken = GetStringSettingCopy(L"Modules.HomeAssistantToken");
+    next.integrationsRefreshSeconds = ClampInt(
+        Wh_GetIntSetting(L"Modules.IntegrationsRefreshSeconds"), 15, 3600);
+    next.homeAssistantEntities.clear();
+    {
+        const std::wstring raw = GetStringSettingCopy(L"Modules.HomeAssistantEntities");
+        size_t start = 0;
+        while (start <= raw.size() && next.homeAssistantEntities.size() < 3) {
+            const size_t comma = raw.find(L',', start);
+            const size_t end = comma == std::wstring::npos ? raw.size() : comma;
+            std::wstring entity = raw.substr(start, end - start);
+            const size_t first = entity.find_first_not_of(L" \t\r\n");
+            if (first != std::wstring::npos) {
+                const size_t last = entity.find_last_not_of(L" \t\r\n");
+                entity = entity.substr(first, last - first + 1);
+                if (!entity.empty()) {
+                    next.homeAssistantEntities.push_back(std::move(entity));
+                }
+            }
+            if (comma == std::wstring::npos) break;
+            start = comma + 1;
+        }
+    }
     next.weather = Wh_GetIntSetting(L"Modules.Weather") != 0;
     next.weatherCity = GetStringSettingWithFallback(L"Modules.WeatherCity", L"Weather.WeatherCity", L"CalendarWeather.WeatherCity");
     next.weatherFahrenheit = Wh_GetIntSetting(L"Modules.WeatherFahrenheit") != 0;
@@ -7308,6 +7402,251 @@ bool ExtractJsonStringField(const std::string& json, const char* fieldKey, std::
         result.push_back(c);
     }
     return false;
+}
+
+bool ExtractJsonIntegerAfter(const std::string& json, size_t start, const char* fieldKey,
+                             int64_t* out) {
+    const std::string key = std::string("\"") + fieldKey + "\":";
+    const size_t keyPos = json.find(key, start);
+    if (keyPos == std::string::npos) return false;
+    const char* value = json.c_str() + keyPos + key.size();
+    char* end = nullptr;
+    const long long parsed = std::strtoll(value, &end, 10);
+    if (end == value) return false;
+    *out = static_cast<int64_t>(parsed);
+    return true;
+}
+
+HttpResult HttpGetUrlWithHeaders(const std::wstring& url, const std::wstring& headers) {
+    HttpResult result;
+    URL_COMPONENTS parts = {sizeof(parts)};
+    parts.dwSchemeLength = static_cast<DWORD>(-1);
+    parts.dwHostNameLength = static_cast<DWORD>(-1);
+    parts.dwUrlPathLength = static_cast<DWORD>(-1);
+    parts.dwExtraInfoLength = static_cast<DWORD>(-1);
+    if (!WinHttpCrackUrl(url.c_str(), 0, 0, &parts) || parts.dwHostNameLength == 0) {
+        return result;
+    }
+
+    const std::wstring host(parts.lpszHostName, parts.dwHostNameLength);
+    std::wstring path(parts.lpszUrlPath, parts.dwUrlPathLength);
+    if (parts.dwExtraInfoLength > 0) {
+        path.append(parts.lpszExtraInfo, parts.dwExtraInfoLength);
+    }
+    if (path.empty()) path = L"/";
+    const bool secure = parts.nScheme == INTERNET_SCHEME_HTTPS;
+
+    HINTERNET session = WinHttpOpen(L"DynamicIslandIntegrations/1.0",
+        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME,
+        WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!session) return result;
+    WinHttpSetTimeouts(session, 5000, 5000, 8000, 10000);
+    HINTERNET connect = WinHttpConnect(session, host.c_str(), parts.nPort, 0);
+    if (connect) {
+        HINTERNET request = WinHttpOpenRequest(connect, L"GET", path.c_str(), nullptr,
+            WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
+            secure ? WINHTTP_FLAG_SECURE : 0);
+        if (request) {
+            const wchar_t* headerPtr = headers.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS
+                                                       : headers.c_str();
+            const DWORD headerLen = headers.empty() ? 0 : static_cast<DWORD>(-1);
+            if (WinHttpSendRequest(request, headerPtr, headerLen,
+                    WINHTTP_NO_REQUEST_DATA, 0, 0, 0) &&
+                WinHttpReceiveResponse(request, nullptr)) {
+                DWORD statusSize = sizeof(result.status);
+                if (WinHttpQueryHeaders(request,
+                        WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                        WINHTTP_HEADER_NAME_BY_INDEX, &result.status, &statusSize,
+                        WINHTTP_NO_HEADER_INDEX)) {
+                    bool readOk = true;
+                    for (;;) {
+                        DWORD available = 0;
+                        if (!WinHttpQueryDataAvailable(request, &available)) {
+                            readOk = false;
+                            break;
+                        }
+                        if (available == 0) break;
+                        std::vector<char> buffer(available);
+                        DWORD read = 0;
+                        if (!WinHttpReadData(request, buffer.data(), available, &read)) {
+                            readOk = false;
+                            break;
+                        }
+                        result.body.append(buffer.data(), read);
+                        if (result.body.size() > 1024u * 1024u) {
+                            readOk = false;
+                            break;
+                        }
+                    }
+                    result.ok = readOk;
+                }
+            }
+            WinHttpCloseHandle(request);
+        }
+        WinHttpCloseHandle(connect);
+    }
+    WinHttpCloseHandle(session);
+    return result;
+}
+
+bool ReadCodexRateLimits(const std::wstring& configuredCommand,
+                         IntegrationsSnapshot* snapshot) {
+    std::wstring executable = configuredCommand;
+    if (executable.size() >= 2 && executable.front() == L'"' && executable.back() == L'"') {
+        executable = executable.substr(1, executable.size() - 2);
+    }
+    if (executable.empty()) return false;
+
+    SECURITY_ATTRIBUTES sa = {sizeof(sa), nullptr, TRUE};
+    HANDLE childStdoutRead = nullptr, childStdoutWrite = nullptr;
+    HANDLE childStdinRead = nullptr, childStdinWrite = nullptr;
+    if (!CreatePipe(&childStdoutRead, &childStdoutWrite, &sa, 0) ||
+        !CreatePipe(&childStdinRead, &childStdinWrite, &sa, 0)) {
+        if (childStdoutRead) CloseHandle(childStdoutRead);
+        if (childStdoutWrite) CloseHandle(childStdoutWrite);
+        if (childStdinRead) CloseHandle(childStdinRead);
+        if (childStdinWrite) CloseHandle(childStdinWrite);
+        return false;
+    }
+    SetHandleInformation(childStdoutRead, HANDLE_FLAG_INHERIT, 0);
+    SetHandleInformation(childStdinWrite, HANDLE_FLAG_INHERIT, 0);
+
+    STARTUPINFOW si = {sizeof(si)};
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = childStdinRead;
+    si.hStdOutput = childStdoutWrite;
+    si.hStdError = childStdoutWrite;
+    PROCESS_INFORMATION pi = {};
+    std::wstring commandLine = L"\"" + executable + L"\" app-server --stdio";
+    const BOOL started = CreateProcessW(executable.c_str(), commandLine.data(), nullptr, nullptr,
+        TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
+    CloseHandle(childStdinRead);
+    CloseHandle(childStdoutWrite);
+    if (!started) {
+        CloseHandle(childStdoutRead);
+        CloseHandle(childStdinWrite);
+        return false;
+    }
+
+    static constexpr char requests[] =
+        "{\"id\":1,\"method\":\"initialize\",\"params\":{\"clientInfo\":{\"name\":\"dynamic-island\",\"version\":\"1.0\"},\"capabilities\":{\"experimentalApi\":true}}}\n"
+        "{\"method\":\"initialized\"}\n"
+        "{\"id\":2,\"method\":\"account/rateLimits/read\",\"params\":{\"excludeResetCreditDetails\":true,\"supportsLunaReserve\":false}}\n";
+    DWORD written = 0;
+    WriteFile(childStdinWrite, requests, static_cast<DWORD>(sizeof(requests) - 1),
+              &written, nullptr);
+    CloseHandle(childStdinWrite);
+
+    std::string output;
+    const ULONGLONG deadline = GetTickCount64() + 12000;
+    while (GetTickCount64() < deadline && output.size() < 512u * 1024u) {
+        DWORD available = 0;
+        if (!PeekNamedPipe(childStdoutRead, nullptr, 0, nullptr, &available, nullptr)) break;
+        if (available > 0) {
+            std::vector<char> buffer(std::min<DWORD>(available, 16384));
+            DWORD read = 0;
+            if (!ReadFile(childStdoutRead, buffer.data(), static_cast<DWORD>(buffer.size()),
+                          &read, nullptr)) break;
+            output.append(buffer.data(), read);
+            if (output.find("\"id\":2,\"result\"") != std::string::npos &&
+                output.find('\n', output.find("\"id\":2,\"result\"")) != std::string::npos) {
+                break;
+            }
+        } else if (WaitForSingleObject(pi.hProcess, 50) == WAIT_OBJECT_0) {
+            break;
+        } else if (WaitForSingleObject(g_stopEvent, 0) == WAIT_OBJECT_0) {
+            break;
+        }
+    }
+    if (WaitForSingleObject(pi.hProcess, 0) == WAIT_TIMEOUT) {
+        TerminateProcess(pi.hProcess, 0);
+    }
+    WaitForSingleObject(pi.hProcess, 1000);
+    CloseHandle(childStdoutRead);
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+
+    const size_t response = output.find("\"id\":2,\"result\"");
+    if (response == std::string::npos) return false;
+    const size_t primary = output.find("\"primary\":", response);
+    const size_t secondary = output.find("\"secondary\":", response);
+    if (primary == std::string::npos || secondary == std::string::npos) return false;
+
+    int64_t primaryUsed = 0, secondaryUsed = 0;
+    int64_t primaryReset = 0, secondaryReset = 0;
+    if (!ExtractJsonIntegerAfter(output, primary, "usedPercent", &primaryUsed) ||
+        !ExtractJsonIntegerAfter(output, secondary, "usedPercent", &secondaryUsed)) {
+        return false;
+    }
+    ExtractJsonIntegerAfter(output, primary, "resetsAt", &primaryReset);
+    ExtractJsonIntegerAfter(output, secondary, "resetsAt", &secondaryReset);
+    snapshot->codexAvailable = true;
+    snapshot->codexFiveHourRemaining = ClampInt(100 - static_cast<int>(primaryUsed), 0, 100);
+    snapshot->codexWeeklyRemaining = ClampInt(100 - static_cast<int>(secondaryUsed), 0, 100);
+    snapshot->codexFiveHourResetsAt = primaryReset;
+    snapshot->codexWeeklyResetsAt = secondaryReset;
+    return true;
+}
+
+HomeAssistantEntitySnapshot ReadHomeAssistantEntity(const std::wstring& baseUrl,
+                                                      const std::wstring& token,
+                                                      const std::wstring& entityId) {
+    HomeAssistantEntitySnapshot entity;
+    entity.entityId = entityId;
+    std::wstring url = baseUrl;
+    while (!url.empty() && url.back() == L'/') url.pop_back();
+    url += L"/api/states/" + AsciiToWide(UrlEncodeComponent(entityId));
+    const std::wstring headers = L"Authorization: Bearer " + token +
+                                 L"\r\nAccept: application/json\r\n";
+    const HttpResult result = HttpGetUrlWithHeaders(url, headers);
+    if (!result.ok || result.status != 200 || result.body.empty()) return entity;
+
+    std::string raw;
+    if (ExtractJsonStringField(result.body, "state", &raw)) {
+        entity.state = JsonStringUnescape(raw);
+    }
+    if (ExtractJsonStringField(result.body, "friendly_name", &raw)) {
+        entity.name = JsonStringUnescape(raw);
+    }
+    if (ExtractJsonStringField(result.body, "unit_of_measurement", &raw)) {
+        entity.unit = JsonStringUnescape(raw);
+    }
+    if (entity.name.empty()) entity.name = entityId;
+    entity.available = !entity.state.empty();
+    return entity;
+}
+
+DWORD WINAPI IntegrationsThreadProc(void*) {
+    WaitForSingleObject(g_stopEvent, 4000);
+    while (WaitForSingleObject(g_stopEvent, 0) == WAIT_TIMEOUT) {
+        const Settings settings = GetSettingsCopy();
+        if (!settings.integrationsModule) {
+            WaitForSingleObject(g_stopEvent, 2000);
+            continue;
+        }
+
+        IntegrationsSnapshot next;
+        if (settings.codexUsage) {
+            ReadCodexRateLimits(settings.codexCommand, &next);
+        }
+        if (!settings.homeAssistantToken.empty()) {
+            for (size_t i = 0; i < settings.homeAssistantEntities.size() && i < 3; ++i) {
+                if (WaitForSingleObject(g_stopEvent, 0) != WAIT_TIMEOUT) break;
+                next.homeAssistant[i] = ReadHomeAssistantEntity(
+                    settings.homeAssistantUrl, settings.homeAssistantToken,
+                    settings.homeAssistantEntities[i]);
+            }
+        }
+        next.lastUpdated = NowSeconds();
+        {
+            std::lock_guard lock(g_stateMutex);
+            g_state.integrations = std::move(next);
+        }
+        g_layoutDirty = true;
+        WaitForSingleObject(g_stopEvent,
+            static_cast<DWORD>(settings.integrationsRefreshSeconds) * 1000);
+    }
+    return 0;
 }
 
 // Splits a top-level JSON array "[ {...}, {...} ]" into the substrings for
@@ -14662,6 +15001,120 @@ class Renderer {
         mutedBrush_->SetOpacity(0.75f);
     }
 
+    void DrawIntegrationsDashboard(const SharedState& state, D2D1_RECT_F rect,
+                                   const Settings& settings, float scale) {
+        const float padX = 24.0f * scale;
+        const float gap = 10.0f * scale;
+        const float contentW = rect.right - rect.left - padX * 2.0f;
+        const float colW = (contentW - gap) * 0.5f;
+        const float left = rect.left + padX;
+        const float right = left + colW + gap;
+
+        if (boldTextFormat_) {
+            boldTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+            const wchar_t* title = L"Codex & Home Assistant";
+            target_->DrawTextW(title, static_cast<UINT32>(wcslen(title)), boldTextFormat_.Get(),
+                D2D1::RectF(left, rect.top + 15.0f * scale, rect.right - padX,
+                            rect.top + 34.0f * scale),
+                textBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+            boldTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+        }
+
+        auto drawCodexCard = [&](float top, const wchar_t* label, int remaining) {
+            const float h = 55.0f * scale;
+            const D2D1_RECT_F card = D2D1::RectF(left, top, left + colW, top + h);
+            DrawCard(card, 10.0f * scale);
+            const float tx = card.left + 11.0f * scale;
+            if (smallTextFormat_) {
+                smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                mutedBrush_->SetOpacity(0.65f);
+                target_->DrawTextW(label, static_cast<UINT32>(wcslen(label)), smallTextFormat_.Get(),
+                    D2D1::RectF(tx, card.top + 4.0f * scale, card.right - 8.0f * scale,
+                                card.top + 21.0f * scale),
+                    mutedBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+                smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            }
+            wchar_t value[32] = L"--";
+            if (remaining >= 0) swprintf_s(value, L"%d%% left", remaining);
+            if (textFormat_) {
+                textFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                target_->DrawTextW(value, static_cast<UINT32>(wcslen(value)), textFormat_.Get(),
+                    D2D1::RectF(tx, card.top + 20.0f * scale, card.right - 8.0f * scale,
+                                card.top + 39.0f * scale),
+                    textBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+                textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            }
+            const float fraction = remaining >= 0 ? Clamp(remaining / 100.0f, 0.0f, 1.0f) : 0.0f;
+            DrawAccentTrack(D2D1::RectF(tx, card.bottom - 8.0f * scale,
+                                        card.right - 10.0f * scale, card.bottom - 4.0f * scale),
+                            fraction, 2.0f * scale);
+        };
+
+        const float cardsTop = rect.top + 42.0f * scale;
+        drawCodexCard(cardsTop, L"CODEX / 5 HOURS",
+                      state.integrations.codexAvailable
+                          ? state.integrations.codexFiveHourRemaining : -1);
+        drawCodexCard(cardsTop + 62.0f * scale, L"CODEX / WEEK",
+                      state.integrations.codexAvailable
+                          ? state.integrations.codexWeeklyRemaining : -1);
+
+        int entityCount = 0;
+        for (const auto& entity : state.integrations.homeAssistant) {
+            if (entity.entityId.empty()) continue;
+            const float top = cardsTop + static_cast<float>(entityCount) * 42.0f * scale;
+            const D2D1_RECT_F card = D2D1::RectF(right, top, right + colW, top + 36.0f * scale);
+            DrawCard(card, 9.0f * scale);
+            const std::wstring value = entity.available
+                ? entity.state + (entity.unit.empty() ? L"" : L" " + entity.unit)
+                : L"Unavailable";
+            const std::wstring& name = entity.name.empty() ? entity.entityId : entity.name;
+            if (smallTextFormat_) {
+                smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                mutedBrush_->SetOpacity(0.62f);
+                target_->DrawTextW(name.c_str(), static_cast<UINT32>(name.size()),
+                    smallTextFormat_.Get(),
+                    D2D1::RectF(card.left + 10.0f * scale, card.top + 2.0f * scale,
+                                card.right - 8.0f * scale, card.top + 16.0f * scale),
+                    mutedBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+                smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            }
+            if (textFormat_) {
+                textFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                target_->DrawTextW(value.c_str(), static_cast<UINT32>(value.size()),
+                    textFormat_.Get(),
+                    D2D1::RectF(card.left + 10.0f * scale, card.top + 16.0f * scale,
+                                card.right - 8.0f * scale, card.bottom - 2.0f * scale),
+                    textBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+                textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            }
+            ++entityCount;
+        }
+
+        if (entityCount == 0 && smallTextFormat_) {
+            const D2D1_RECT_F card = D2D1::RectF(right, cardsTop, right + colW,
+                                                  cardsTop + 55.0f * scale);
+            DrawCard(card, 10.0f * scale);
+            const wchar_t* message = settings.homeAssistantToken.empty()
+                ? L"Add a token and entity IDs in Mod Settings"
+                : L"No Home Assistant entities configured";
+            smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            mutedBrush_->SetOpacity(0.70f);
+            target_->DrawTextW(message, static_cast<UINT32>(wcslen(message)), smallTextFormat_.Get(),
+                D2D1::RectF(card.left + 8.0f * scale, card.top + 5.0f * scale,
+                            card.right - 8.0f * scale, card.bottom - 5.0f * scale),
+                mutedBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+            smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+            smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+        }
+        textBrush_->SetOpacity(0.96f);
+        mutedBrush_->SetOpacity(0.75f);
+    }
+
         // Karaoke effect: a soft wave rides the wipe boundary across the active line.
     // The layout and per-cluster rects are cached (karaokeCache_) and only rebuilt
     // when the line changes.
@@ -15561,6 +16014,7 @@ class Renderer {
             activeTabs.push_back(0); // Calendar
             if (settings.weather) activeTabs.push_back(1);
             if (settings.hardwareMonitorModule) activeTabs.push_back(2);
+            if (settings.integrationsModule) activeTabs.push_back(5);
             if (settings.fileTrayModule) activeTabs.push_back(4);
 
             int maxTabs = static_cast<int>(activeTabs.size());
@@ -15581,6 +16035,7 @@ class Renderer {
                 else if (activeTabId == 0) DrawCalendarDashboard(state, fullRect, settings, now, scale, local);
                 else if (activeTabId == 1) DrawWeatherDashboard(state, fullRect, settings, now, scale, hasWeather, wIcon, wText);
                 else if (activeTabId == 2) DrawHardwareMonitorDashboard(state, fullRect, settings, scale);
+                else if (activeTabId == 5) DrawIntegrationsDashboard(state, fullRect, settings, scale);
                 else if (activeTabId == 4) DrawFileTrayDashboard(state, fullRect, settings, scale);
             });
 
@@ -16133,6 +16588,7 @@ class Renderer {
             activeTabs.push_back(1); // Calendar
             if (settings.weather) activeTabs.push_back(2);
             if (settings.hardwareMonitorModule) activeTabs.push_back(3);
+            if (settings.integrationsModule) activeTabs.push_back(6);
             if (settings.fileTrayModule) activeTabs.push_back(4);
             if (settings.lyrics && !lyricsFirst) activeTabs.push_back(5);  // Lyrics (last)
 
@@ -16395,6 +16851,8 @@ class Renderer {
                                     D2D1::RectF(lyricsCx - lyricsW * 0.5f, rect.top,
                                                 lyricsCx + lyricsW * 0.5f, rect.top + lyricsH),
                                     settings, 1.0f);
+            } else if (activeTabId == 6) {
+                DrawIntegrationsDashboard(state, rect, settings, 1.0f);
             }
             };  // end drawTabContent
 
@@ -24403,6 +24861,7 @@ bool StartThreads() {
     g_mediaThread = CreateThread(nullptr, 0, MediaThreadProc, nullptr, 0, nullptr);
     g_audioThread = CreateThread(nullptr, 0, AudioThreadProc, nullptr, 0, nullptr);
     g_weatherThread = CreateThread(nullptr, 0, WeatherThreadProc, nullptr, 0, nullptr);
+    g_integrationsThread = CreateThread(nullptr, 0, IntegrationsThreadProc, nullptr, 0, nullptr);
     g_lyricsThread = CreateThread(nullptr, 0, LyricsThreadProc, nullptr, 0, nullptr);
     g_keyboardThread = CreateThread(nullptr, 0, KeyboardThreadProc, nullptr, 0, &g_keyboardThreadId);
     g_mouseThread = CreateThread(nullptr, 0, MouseThreadProc, nullptr, 0, &g_mouseThreadId);
@@ -24427,7 +24886,9 @@ void StopThreads() {
         SetEvent(g_stopEvent);
     }
 
-    HANDLE handles[] = {g_renderThread, g_mediaThread, g_audioThread, g_weatherThread, g_lyricsThread, g_notificationThread, g_keyboardThread, g_mouseThread, g_bluetoothThread};
+    HANDLE handles[] = {g_renderThread, g_mediaThread, g_audioThread, g_weatherThread,
+                        g_integrationsThread, g_lyricsThread, g_notificationThread,
+                        g_keyboardThread, g_mouseThread, g_bluetoothThread};
     for (HANDLE handle : handles) {
         if (handle) {
             WaitForSingleObject(handle, 3000);
@@ -24439,6 +24900,7 @@ void StopThreads() {
     g_mediaThread = nullptr;
     g_audioThread = nullptr;
     g_weatherThread = nullptr;
+    g_integrationsThread = nullptr;
     g_lyricsThread = nullptr;
     g_notificationThread = nullptr;
     g_keyboardThread = nullptr;
