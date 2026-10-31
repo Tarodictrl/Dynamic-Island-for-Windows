@@ -2,7 +2,7 @@
 // @id              dynamic-island-for-windows
 // @name            Dynamic Island for Windows
 // @description     A living, breathing pill overlay inspired by iPhone's Dynamic Island. Reacts to media, downloads, clipboard, battery, and more.
-// @version         1.4.1
+// @version         1.4.2
 // @author          Himanshu
 // @github          https://github.com/devcode90
 // @include         windhawk.exe
@@ -34,7 +34,8 @@ The Dynamic Island intelligently expands to display context-aware dashboards. Yo
 | **Calendar** | A monthly grid that always fits its rows, with today marked in the accent colour. | ![Calendar](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/calendar.png) |
 | **Weather** | Real-time weather stats powered by wttr.in, including wind speed, humidity, and "feels like" temperature. | ![Weather](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/weather-v2.png) |
 | **Hardware Monitor** | CPU, RAM, GPU, disk and live network throughput, with load bars that turn amber past 75% and red past 90%. | ![Hardware Monitor](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/hardware-monitor.png) |
-| **Codex & Home Assistant** | Remaining Codex five-hour and weekly allowance plus up to three Home Assistant entity states. | |
+| **Codex Usage** | Remaining Codex five-hour and weekly allowance on its own dashboard tab. | |
+| **Home Assistant** | Up to three Home Assistant entity states on a separate dashboard tab. | |
 | **Game Overlay** | Real-time FPS, CPU, GPU, RAM and disk, sized to whichever metrics you enable. | ![Gamebar](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/gamebar-v2.png) |
 | **Idle View** | A minimal dashboard with your battery status, digital clock, and sleek pagination dots. | ![Idle](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/idle-v2.png) |
 | **Camera Privacy** | Shows a green dot when an app is actively using your webcam. | ![Camera](https://raw.githubusercontent.com/devcode90/Dynamic-Island-for-Windows/793cf954d51aa9748c39d544187fab6e25ecd0fb/previews/camera-detected-v2.png) |
@@ -70,7 +71,7 @@ The Dynamic Island intelligently expands to display context-aware dashboards. Yo
 - **Right-Click Menu:** Right-click the island to access Theme presets, Transparency settings, collapsed-island lyrics, and to pin the island open.
 - **⚠️ Right-click choices are per-session:** The right-click menu is a quick way to try things out, not a place to configure the mod. **Theme**, **shape style** (Pill / Notch / Windows 11) and **pin open** are all re-applied from your Windhawk settings whenever the mod restarts — so a reboot, a mod update, or toggling the mod off and on will discard them. Anything you want to keep, set in the **Mod Settings** tab instead. (Transparency and Expand-on-hover do persist, but the settings tab is still the reliable place for them.)
 - **Windhawk Settings:** Visit the Mod Settings tab to change the island's Position, Size Scale, Refresh Rate (Target FPS), Animation Style (Smooth/Default/Bouncy/Snappy), Animation Speed, and toggle specific modules. You can also perfectly align the island using the `Offset X` and `Offset Y` settings, and select exactly which monitor the island should appear on (including a "Follow Mouse" mode!).
-- **Codex & Home Assistant:** Under Modules, set the path to `codex.exe` if it isn't in Windhawk's PATH. For Home Assistant, add the base URL, a long-lived access token, and up to three comma-separated entity IDs. The token is sent only to that configured URL.
+- **Codex & Home Assistant:** These are separate dashboard tabs. Codex is found from PATH or the standard npm installation automatically; a custom `codex.exe`/`codex.cmd` path can still be set under Modules. For Home Assistant, add the base URL, a long-lived access token, and up to three comma-separated entity IDs.
 - **Blur & Acrylic need Transparency effects:** Windows does not enable this by default on every PC, and the Blur and Acrylic backdrop will not show without it (you will only see a flat tint instead). Turn it on in **Settings > Personalization > Colors > Transparency effects** (on Windows 11 you can also find it under **Settings > Accessibility > Visual effects > Transparency effects**). Also make sure **Battery saver** is off, because it disables these effects too. Then pick a material under **Mod Settings > Themes > Backdrop material**; the change applies live, no restart needed.
 - **Notifications:** Windows must allow apps to read notifications: turn on **Settings > Privacy & security > Notifications > "Let apps access your notifications"**. Without that permission Windows denies the listener and the module stays silent. Nothing needs to be added to the process inclusion list; the island runs in its own process and reads notifications from there. Note: notifications from command-line consoles and terminal hosts (PowerShell, cmd.exe, conhost) are filtered out by default to avoid toast spam from terminal scripts and build jobs.
 - **Quick Hide/Show:** Right-click the island and choose "Hide Island" to collapse it completely — CPU usage drops to ~0% while hidden since the mod fully parks its render thread. Bring it back instantly with the configurable hotkey (default **Ctrl+Alt+D**, changeable in the **Shortcuts** settings tab). Because a hidden island can't be right-clicked, the hotkey is the *only* way back once hidden — if you turn the hotkey off while hidden, re-enable it (or disable the mod) from Windhawk's settings.
@@ -421,14 +422,17 @@ We love community contributions! To ensure high-quality updates, please follow t
     $name: Include Hardware Monitor in scroll loop
     $description: Add CPU, GPU, RAM, FPS and Network stats card to mouse-wheel scroll loop.
   - IntegrationsModule: true
-    $name: Codex & Home Assistant dashboard
-    $description: Adds a dashboard with remaining Codex allowance and up to three Home Assistant entities.
+    $name: Integrations dashboards
+    $description: Master switch for the separate Codex and Home Assistant dashboards.
   - CodexUsage: true
-    $name: Show Codex allowance
+    $name: Codex dashboard
     $description: Reads the signed-in account's remaining five-hour and weekly allowance from the local Codex app-server. No authentication token is copied or stored by this mod.
-  - CodexCommand: "codex.exe"
+  - CodexCommand: "codex"
     $name: Codex executable
-    $description: Command or full path to codex.exe. Use a full path if Codex is not available in the Windhawk process PATH.
+    $description: Command or full path to codex.exe/codex.cmd. The default automatically checks PATH and the standard npm installation folder.
+  - HomeAssistant: true
+    $name: Home Assistant dashboard
+    $description: Shows up to three configured Home Assistant entity states on its own dashboard tab.
   - HomeAssistantUrl: "http://homeassistant.local:8123"
     $name: Home Assistant URL
     $description: Base URL of your Home Assistant instance, including the port when needed.
@@ -1298,7 +1302,8 @@ struct Settings {
     bool hardwareMonitorModule = true;
     bool integrationsModule = true;
     bool codexUsage = true;
-    std::wstring codexCommand = L"codex.exe";
+    std::wstring codexCommand = L"codex";
+    bool homeAssistant = true;
     std::wstring homeAssistantUrl = L"http://homeassistant.local:8123";
     std::wstring homeAssistantToken;
     std::vector<std::wstring> homeAssistantEntities;
@@ -1542,6 +1547,7 @@ struct HomeAssistantEntitySnapshot {
 
 struct IntegrationsSnapshot {
     bool codexAvailable = false;
+    std::wstring codexError;
     int codexFiveHourRemaining = -1;
     int codexWeeklyRemaining = -1;
     int64_t codexFiveHourResetsAt = 0;
@@ -2017,7 +2023,8 @@ int ActiveTabCount(const Settings& settings) {
     int count = 2;  // primary (media or clock) + calendar
     if (settings.weather) ++count;
     if (settings.hardwareMonitorModule) ++count;
-    if (settings.integrationsModule) ++count;
+    if (settings.integrationsModule && settings.codexUsage) ++count;
+    if (settings.integrationsModule && settings.homeAssistant) ++count;
     if (settings.fileTrayModule) ++count;
     if (settings.lyrics && g_lyricsTabAvailable.load(std::memory_order_relaxed)) ++count;
     return count;
@@ -2054,16 +2061,25 @@ int FileTrayTabIndex(const Settings& settings) {
         return -1;
     }
     return 2 + (settings.weather ? 1 : 0) + (settings.hardwareMonitorModule ? 1 : 0) +
-           (settings.integrationsModule ? 1 : 0) +
+           (settings.integrationsModule && settings.codexUsage ? 1 : 0) +
+           (settings.integrationsModule && settings.homeAssistant ? 1 : 0) +
            MediaTabIndex(settings);
 }
 
-int IntegrationsTabIndex(const Settings& settings) {
-    if (!settings.integrationsModule) {
+int CodexTabIndex(const Settings& settings) {
+    if (!settings.integrationsModule || !settings.codexUsage) {
         return -1;
     }
     return 2 + (settings.weather ? 1 : 0) + (settings.hardwareMonitorModule ? 1 : 0) +
            MediaTabIndex(settings);
+}
+
+int HomeAssistantTabIndex(const Settings& settings) {
+    if (!settings.integrationsModule || !settings.homeAssistant) {
+        return -1;
+    }
+    return 2 + (settings.weather ? 1 : 0) + (settings.hardwareMonitorModule ? 1 : 0) +
+           (settings.codexUsage ? 1 : 0) + MediaTabIndex(settings);
 }
 
 // Moves the dashboard one tab (+1 = next, -1 = previous). Clamped at both ends:
@@ -3327,8 +3343,9 @@ void LoadSettings() {
     next.codexUsage = Wh_GetIntSetting(L"Modules.CodexUsage") != 0;
     next.codexCommand = GetStringSettingCopy(L"Modules.CodexCommand");
     if (next.codexCommand.empty()) {
-        next.codexCommand = L"codex.exe";
+        next.codexCommand = L"codex";
     }
+    next.homeAssistant = Wh_GetIntSetting(L"Modules.HomeAssistant") != 0;
     next.homeAssistantUrl = GetStringSettingCopy(L"Modules.HomeAssistantUrl");
     if (next.homeAssistantUrl.empty()) {
         next.homeAssistantUrl = L"http://homeassistant.local:8123";
@@ -7489,13 +7506,57 @@ HttpResult HttpGetUrlWithHeaders(const std::wstring& url, const std::wstring& he
     return result;
 }
 
+bool ExistingRegularFile(const std::wstring& path) {
+    const DWORD attributes = GetFileAttributesW(path.c_str());
+    return attributes != INVALID_FILE_ATTRIBUTES &&
+           (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
+
+std::wstring SearchPathFor(const wchar_t* file, const wchar_t* extension) {
+    std::vector<wchar_t> buffer(32768);
+    const DWORD length = SearchPathW(nullptr, file, extension,
+                                    static_cast<DWORD>(buffer.size()), buffer.data(), nullptr);
+    return length > 0 && length < buffer.size() ? std::wstring(buffer.data(), length)
+                                                : std::wstring();
+}
+
+std::wstring ResolveCodexLauncher(std::wstring configured) {
+    if (configured.size() >= 2 && configured.front() == L'"' && configured.back() == L'"') {
+        configured = configured.substr(1, configured.size() - 2);
+    }
+    if (configured.empty()) configured = L"codex";
+    if (ExistingRegularFile(configured)) return configured;
+
+    const bool simpleName = configured.find_first_of(L"\\/") == std::wstring::npos;
+    if (!simpleName) return std::wstring();
+
+    std::wstring found = SearchPathFor(configured.c_str(), nullptr);
+    if (!found.empty()) return found;
+    if (configured == L"codex" || configured == L"codex.exe" || configured == L"codex.cmd") {
+        found = SearchPathFor(L"codex", L".exe");
+        if (!found.empty()) return found;
+        found = SearchPathFor(L"codex", L".cmd");
+        if (!found.empty()) return found;
+
+        std::vector<wchar_t> appData(32768);
+        const DWORD length = GetEnvironmentVariableW(
+            L"APPDATA", appData.data(), static_cast<DWORD>(appData.size()));
+        if (length > 0 && length < appData.size()) {
+            std::wstring npmLauncher(appData.data(), length);
+            npmLauncher += L"\\npm\\codex.cmd";
+            if (ExistingRegularFile(npmLauncher)) return npmLauncher;
+        }
+    }
+    return std::wstring();
+}
+
 bool ReadCodexRateLimits(const std::wstring& configuredCommand,
                          IntegrationsSnapshot* snapshot) {
-    std::wstring executable = configuredCommand;
-    if (executable.size() >= 2 && executable.front() == L'"' && executable.back() == L'"') {
-        executable = executable.substr(1, executable.size() - 2);
+    const std::wstring launcher = ResolveCodexLauncher(configuredCommand);
+    if (launcher.empty()) {
+        snapshot->codexError = L"Codex CLI not found";
+        return false;
     }
-    if (executable.empty()) return false;
 
     SECURITY_ATTRIBUTES sa = {sizeof(sa), nullptr, TRUE};
     HANDLE childStdoutRead = nullptr, childStdoutWrite = nullptr;
@@ -7506,6 +7567,7 @@ bool ReadCodexRateLimits(const std::wstring& configuredCommand,
         if (childStdoutWrite) CloseHandle(childStdoutWrite);
         if (childStdinRead) CloseHandle(childStdinRead);
         if (childStdinWrite) CloseHandle(childStdinWrite);
+        snapshot->codexError = L"Failed to create pipes";
         return false;
     }
     SetHandleInformation(childStdoutRead, HANDLE_FLAG_INHERIT, 0);
@@ -7517,14 +7579,26 @@ bool ReadCodexRateLimits(const std::wstring& configuredCommand,
     si.hStdOutput = childStdoutWrite;
     si.hStdError = childStdoutWrite;
     PROCESS_INFORMATION pi = {};
-    std::wstring commandLine = L"\"" + executable + L"\" app-server --stdio";
-    const BOOL started = CreateProcessW(executable.c_str(), commandLine.data(), nullptr, nullptr,
+    std::wstring application = launcher;
+    std::wstring commandLine = L"\"" + launcher + L"\" app-server --stdio";
+    if (launcher.size() >= 4 &&
+        EqualsNoCase(launcher.substr(launcher.size() - 4), L".cmd")) {
+        std::vector<wchar_t> comSpec(32768);
+        const DWORD length = GetEnvironmentVariableW(
+            L"ComSpec", comSpec.data(), static_cast<DWORD>(comSpec.size()));
+        application = length > 0 && length < comSpec.size()
+            ? std::wstring(comSpec.data(), length) : L"C:\\Windows\\System32\\cmd.exe";
+        commandLine = L"\"" + application + L"\" /d /s /c \"\"" + launcher +
+                      L"\" app-server --stdio\"";
+    }
+    const BOOL started = CreateProcessW(application.c_str(), commandLine.data(), nullptr, nullptr,
         TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
     CloseHandle(childStdinRead);
     CloseHandle(childStdoutWrite);
     if (!started) {
         CloseHandle(childStdoutRead);
         CloseHandle(childStdinWrite);
+        snapshot->codexError = L"Could not start Codex CLI";
         return false;
     }
 
@@ -7567,15 +7641,22 @@ bool ReadCodexRateLimits(const std::wstring& configuredCommand,
     CloseHandle(pi.hProcess);
 
     const size_t response = output.find("\"id\":2,\"result\"");
-    if (response == std::string::npos) return false;
+    if (response == std::string::npos) {
+        snapshot->codexError = L"Codex returned no usage data";
+        return false;
+    }
     const size_t primary = output.find("\"primary\":", response);
     const size_t secondary = output.find("\"secondary\":", response);
-    if (primary == std::string::npos || secondary == std::string::npos) return false;
+    if (primary == std::string::npos || secondary == std::string::npos) {
+        snapshot->codexError = L"Usage windows unavailable";
+        return false;
+    }
 
     int64_t primaryUsed = 0, secondaryUsed = 0;
     int64_t primaryReset = 0, secondaryReset = 0;
     if (!ExtractJsonIntegerAfter(output, primary, "usedPercent", &primaryUsed) ||
         !ExtractJsonIntegerAfter(output, secondary, "usedPercent", &secondaryUsed)) {
+        snapshot->codexError = L"Invalid Codex usage response";
         return false;
     }
     ExtractJsonIntegerAfter(output, primary, "resetsAt", &primaryReset);
@@ -7585,6 +7666,7 @@ bool ReadCodexRateLimits(const std::wstring& configuredCommand,
     snapshot->codexWeeklyRemaining = ClampInt(100 - static_cast<int>(secondaryUsed), 0, 100);
     snapshot->codexFiveHourResetsAt = primaryReset;
     snapshot->codexWeeklyResetsAt = secondaryReset;
+    snapshot->codexError.clear();
     return true;
 }
 
@@ -7629,7 +7711,7 @@ DWORD WINAPI IntegrationsThreadProc(void*) {
         if (settings.codexUsage) {
             ReadCodexRateLimits(settings.codexCommand, &next);
         }
-        if (!settings.homeAssistantToken.empty()) {
+        if (settings.homeAssistant && !settings.homeAssistantToken.empty()) {
             for (size_t i = 0; i < settings.homeAssistantEntities.size() && i < 3; ++i) {
                 if (WaitForSingleObject(g_stopEvent, 0) != WAIT_TIMEOUT) break;
                 next.homeAssistant[i] = ReadHomeAssistantEntity(
@@ -15001,18 +15083,16 @@ class Renderer {
         mutedBrush_->SetOpacity(0.75f);
     }
 
-    void DrawIntegrationsDashboard(const SharedState& state, D2D1_RECT_F rect,
-                                   const Settings& settings, float scale) {
+    void DrawCodexDashboard(const SharedState& state, D2D1_RECT_F rect, float scale) {
         const float padX = 24.0f * scale;
         const float gap = 10.0f * scale;
         const float contentW = rect.right - rect.left - padX * 2.0f;
         const float colW = (contentW - gap) * 0.5f;
         const float left = rect.left + padX;
-        const float right = left + colW + gap;
 
         if (boldTextFormat_) {
             boldTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-            const wchar_t* title = L"Codex & Home Assistant";
+            const wchar_t* title = L"Codex usage";
             target_->DrawTextW(title, static_cast<UINT32>(wcslen(title)), boldTextFormat_.Get(),
                 D2D1::RectF(left, rect.top + 15.0f * scale, rect.right - padX,
                             rect.top + 34.0f * scale),
@@ -15020,51 +15100,92 @@ class Renderer {
             boldTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
         }
 
-        auto drawCodexCard = [&](float top, const wchar_t* label, int remaining) {
-            const float h = 55.0f * scale;
-            const D2D1_RECT_F card = D2D1::RectF(left, top, left + colW, top + h);
+        auto drawCodexCard = [&](float cardLeft, const wchar_t* label, int remaining) {
+            const D2D1_RECT_F card = D2D1::RectF(
+                cardLeft, rect.top + 46.0f * scale, cardLeft + colW, rect.top + 145.0f * scale);
             DrawCard(card, 10.0f * scale);
-            const float tx = card.left + 11.0f * scale;
             if (smallTextFormat_) {
-                smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
                 smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
                 mutedBrush_->SetOpacity(0.65f);
                 target_->DrawTextW(label, static_cast<UINT32>(wcslen(label)), smallTextFormat_.Get(),
-                    D2D1::RectF(tx, card.top + 4.0f * scale, card.right - 8.0f * scale,
-                                card.top + 21.0f * scale),
+                    D2D1::RectF(card.left + 8.0f * scale, card.top + 8.0f * scale,
+                                card.right - 8.0f * scale, card.top + 26.0f * scale),
                     mutedBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+                smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
                 smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
             }
-            wchar_t value[32] = L"--";
-            if (remaining >= 0) swprintf_s(value, L"%d%% left", remaining);
-            if (textFormat_) {
-                textFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-                textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                target_->DrawTextW(value, static_cast<UINT32>(wcslen(value)), textFormat_.Get(),
-                    D2D1::RectF(tx, card.top + 20.0f * scale, card.right - 8.0f * scale,
-                                card.top + 39.0f * scale),
+            wchar_t value[32] = {};
+            swprintf_s(value, L"%d%%", remaining);
+            if (hugeTextFormat_) {
+                hugeTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+                hugeTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                target_->DrawTextW(value, static_cast<UINT32>(wcslen(value)), hugeTextFormat_.Get(),
+                    D2D1::RectF(card.left + 8.0f * scale, card.top + 25.0f * scale,
+                                card.right - 8.0f * scale, card.top + 72.0f * scale),
                     textBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
-                textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+                hugeTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+                hugeTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
             }
-            const float fraction = remaining >= 0 ? Clamp(remaining / 100.0f, 0.0f, 1.0f) : 0.0f;
-            DrawAccentTrack(D2D1::RectF(tx, card.bottom - 8.0f * scale,
+            DrawAccentTrack(D2D1::RectF(card.left + 12.0f * scale, card.bottom - 12.0f * scale,
                                         card.right - 10.0f * scale, card.bottom - 4.0f * scale),
-                            fraction, 2.0f * scale);
+                            Clamp(remaining / 100.0f, 0.0f, 1.0f), 3.0f * scale);
         };
 
-        const float cardsTop = rect.top + 42.0f * scale;
-        drawCodexCard(cardsTop, L"CODEX / 5 HOURS",
-                      state.integrations.codexAvailable
-                          ? state.integrations.codexFiveHourRemaining : -1);
-        drawCodexCard(cardsTop + 62.0f * scale, L"CODEX / WEEK",
-                      state.integrations.codexAvailable
-                          ? state.integrations.codexWeeklyRemaining : -1);
+        if (state.integrations.codexAvailable) {
+            drawCodexCard(left, L"5 HOURS", state.integrations.codexFiveHourRemaining);
+            drawCodexCard(left + colW + gap, L"WEEK", state.integrations.codexWeeklyRemaining);
+        } else {
+            const D2D1_RECT_F card = D2D1::RectF(left, rect.top + 46.0f * scale,
+                rect.right - padX, rect.top + 137.0f * scale);
+            DrawCard(card, 10.0f * scale);
+            const std::wstring message = state.integrations.codexError.empty()
+                ? L"Loading Codex usage..." : state.integrations.codexError;
+            if (textFormat_) {
+                textFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+                textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                target_->DrawTextW(message.c_str(), static_cast<UINT32>(message.size()),
+                    textFormat_.Get(), D2D1::RectF(card.left + 12.0f * scale,
+                        card.top + 12.0f * scale, card.right - 12.0f * scale,
+                        card.top + 47.0f * scale), textBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+                textFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                textFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            }
+            if (smallTextFormat_) {
+                const wchar_t* hint = L"Check Modules > Codex executable";
+                smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+                smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                target_->DrawTextW(hint, static_cast<UINT32>(wcslen(hint)), smallTextFormat_.Get(),
+                    D2D1::RectF(card.left + 12.0f * scale, card.top + 49.0f * scale,
+                        card.right - 12.0f * scale, card.bottom - 8.0f * scale),
+                    mutedBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+                smallTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                smallTextFormat_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            }
+        }
+        textBrush_->SetOpacity(0.96f);
+        mutedBrush_->SetOpacity(0.75f);
+    }
+
+    void DrawHomeAssistantDashboard(const SharedState& state, D2D1_RECT_F rect,
+                                    const Settings& settings, float scale) {
+        const float padX = 24.0f * scale;
+        const float left = rect.left + padX;
+        const float right = rect.right - padX;
+        if (boldTextFormat_) {
+            boldTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+            const wchar_t* title = L"Home Assistant";
+            target_->DrawTextW(title, static_cast<UINT32>(wcslen(title)), boldTextFormat_.Get(),
+                D2D1::RectF(left, rect.top + 15.0f * scale, right, rect.top + 34.0f * scale),
+                textBrush_.Get(), D2D1_DRAW_TEXT_OPTIONS_CLIP);
+            boldTextFormat_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+        }
 
         int entityCount = 0;
         for (const auto& entity : state.integrations.homeAssistant) {
             if (entity.entityId.empty()) continue;
-            const float top = cardsTop + static_cast<float>(entityCount) * 42.0f * scale;
-            const D2D1_RECT_F card = D2D1::RectF(right, top, right + colW, top + 36.0f * scale);
+            const float top = rect.top + (42.0f + static_cast<float>(entityCount) * 42.0f) * scale;
+            const D2D1_RECT_F card = D2D1::RectF(left, top, right, top + 36.0f * scale);
             DrawCard(card, 9.0f * scale);
             const std::wstring value = entity.available
                 ? entity.state + (entity.unit.empty() ? L"" : L" " + entity.unit)
@@ -15095,8 +15216,8 @@ class Renderer {
         }
 
         if (entityCount == 0 && smallTextFormat_) {
-            const D2D1_RECT_F card = D2D1::RectF(right, cardsTop, right + colW,
-                                                  cardsTop + 55.0f * scale);
+            const D2D1_RECT_F card = D2D1::RectF(left, rect.top + 46.0f * scale, right,
+                                                  rect.top + 120.0f * scale);
             DrawCard(card, 10.0f * scale);
             const wchar_t* message = settings.homeAssistantToken.empty()
                 ? L"Add a token and entity IDs in Mod Settings"
@@ -16014,7 +16135,8 @@ class Renderer {
             activeTabs.push_back(0); // Calendar
             if (settings.weather) activeTabs.push_back(1);
             if (settings.hardwareMonitorModule) activeTabs.push_back(2);
-            if (settings.integrationsModule) activeTabs.push_back(5);
+            if (settings.integrationsModule && settings.codexUsage) activeTabs.push_back(5);
+            if (settings.integrationsModule && settings.homeAssistant) activeTabs.push_back(6);
             if (settings.fileTrayModule) activeTabs.push_back(4);
 
             int maxTabs = static_cast<int>(activeTabs.size());
@@ -16035,7 +16157,8 @@ class Renderer {
                 else if (activeTabId == 0) DrawCalendarDashboard(state, fullRect, settings, now, scale, local);
                 else if (activeTabId == 1) DrawWeatherDashboard(state, fullRect, settings, now, scale, hasWeather, wIcon, wText);
                 else if (activeTabId == 2) DrawHardwareMonitorDashboard(state, fullRect, settings, scale);
-                else if (activeTabId == 5) DrawIntegrationsDashboard(state, fullRect, settings, scale);
+                else if (activeTabId == 5) DrawCodexDashboard(state, fullRect, scale);
+                else if (activeTabId == 6) DrawHomeAssistantDashboard(state, fullRect, settings, scale);
                 else if (activeTabId == 4) DrawFileTrayDashboard(state, fullRect, settings, scale);
             });
 
@@ -16588,7 +16711,8 @@ class Renderer {
             activeTabs.push_back(1); // Calendar
             if (settings.weather) activeTabs.push_back(2);
             if (settings.hardwareMonitorModule) activeTabs.push_back(3);
-            if (settings.integrationsModule) activeTabs.push_back(6);
+            if (settings.integrationsModule && settings.codexUsage) activeTabs.push_back(6);
+            if (settings.integrationsModule && settings.homeAssistant) activeTabs.push_back(7);
             if (settings.fileTrayModule) activeTabs.push_back(4);
             if (settings.lyrics && !lyricsFirst) activeTabs.push_back(5);  // Lyrics (last)
 
@@ -16852,7 +16976,9 @@ class Renderer {
                                                 lyricsCx + lyricsW * 0.5f, rect.top + lyricsH),
                                     settings, 1.0f);
             } else if (activeTabId == 6) {
-                DrawIntegrationsDashboard(state, rect, settings, 1.0f);
+                DrawCodexDashboard(state, rect, 1.0f);
+            } else if (activeTabId == 7) {
+                DrawHomeAssistantDashboard(state, rect, settings, 1.0f);
             }
             };  // end drawTabContent
 

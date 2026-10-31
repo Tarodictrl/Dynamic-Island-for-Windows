@@ -76,7 +76,7 @@ A smooth, interactive overlay for your desktop, inspired by Apple's Dynamic Isla
 **Core Features:**
 
 - 🟢 **Privacy Dots:** See an orange dot when your mic is on and a green dot for your camera.
-- 🤖 **Codex & Home Assistant:** See remaining Codex five-hour and weekly allowance alongside up to three Home Assistant entities in the dashboard loop.
+- 🤖 **Codex & Home Assistant:** Separate dashboard tabs show remaining Codex five-hour/weekly allowance and up to three Home Assistant entities.
 - 📅 **Dashboards:** Scroll your mouse wheel to easily switch between Media, Calendar, and live Weather (via wttr.in).
 - 🔒 **Key Alerts:** Get quick visual popups when you hit Caps Lock or Num Lock.
 - 🔋 **Battery & Power:** Fluid animations when you plug in, unplug, or hit low battery.
@@ -111,7 +111,7 @@ Tweak the mod easily from the **Windhawk settings panel**:
 - **Media Pill Clock:** Optionally show the current time on the left of the collapsed media pill, using the same 12/24-hour and seconds settings as the idle clock.
 - **Volume & Brightness Flyouts:** Slider banners appear on the island when the system volume or your laptop screen brightness changes. Both can be switched off in **Modules & Features**.
 - **Modules & Visibility:** Configure media, dashboards, privacy dots, system flyouts, auto-hide idle behavior, and shortcuts.
-- **Codex usage:** The integrations dashboard starts the local `codex app-server` in read-only mode and reads `account/rateLimits/read`; it never copies your Codex OAuth token. If Windhawk cannot find `codex.exe`, set its full path under **Modules → Codex executable**.
+- **Codex usage:** The Codex tab starts the local `codex app-server` in read-only mode and reads `account/rateLimits/read`; it never copies your Codex OAuth token. It detects PATH and the standard npm `codex.cmd` installation automatically; a custom path remains available under **Modules → Codex executable**.
 - **Home Assistant:** Create a long-lived access token in your Home Assistant profile, then set the base URL, token, and up to three comma-separated entity IDs under **Modules**. The token is sent only as a Bearer header to that URL. The default is `http://homeassistant.local:8123`.
 - **Notification Permission (for Notifications):** Windows must allow apps to read your notifications. Turn on **Settings → Privacy & security → Notifications → "Let apps access your notifications"**. If this is off, Windows denies the listener and no notification will reach the island no matter how the mod is configured. When notifications still don't show, check the mod's log in Windhawk for a "permission not granted" line. Note: notifications from command-line consoles and terminal hosts (PowerShell, cmd.exe, conhost) are filtered out by default to avoid toast spam from terminal scripts and build jobs.
 
